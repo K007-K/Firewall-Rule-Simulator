@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTables Firewall Rule Simulator — Network Traffic Filtering & Access Control</title>
+    <meta name="description" content="Simulate and optimize IPTables firewall rules for efficient network traffic filtering and access control. Visualize packet flow through chains.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
+    <!-- Header -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-icon">
+                    <rect x="2" y="2" width="36" height="36" rx="8" stroke="url(#logoGrad)" stroke-width="2.5"/>
+                    <path d="M12 14h16M12 20h16M12 26h16" stroke="url(#logoGrad)" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="30" cy="10" r="5" fill="#ef4444" stroke="#1a1a2e" stroke-width="2"/>
+                    <path d="M28.5 10h3M30 8.5v3" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40">
+                            <stop stop-color="#6366f1"/>
+                            <stop offset="1" stop-color="#06b6d4"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div>
+                    <h1>IPTables Firewall Simulator</h1>
+                    <p class="subtitle">Network Traffic Filtering & Access Control</p>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="stats-bar">
+                <div class="stat-chip" id="stat-total-rules">
+                    <span class="stat-icon">📋</span>
+                    <span class="stat-label">Rules</span>
+                    <span class="stat-value" id="total-rules-count">0</span>
+                </div>
+                <div class="stat-chip" id="stat-accepted">
+                    <span class="stat-icon">✅</span>
+                    <span class="stat-label">Accepted</span>
+                    <span class="stat-value" id="accepted-count">0</span>
+                </div>
+                <div class="stat-chip" id="stat-dropped">
+                    <span class="stat-icon">🚫</span>
+                    <span class="stat-label">Dropped</span>
+                    <span class="stat-value" id="dropped-count">0</span>
+                </div>
+                <div class="stat-chip" id="stat-rejected">
+                    <span class="stat-icon">⛔</span>
+                    <span class="stat-label">Rejected</span>
+                    <span class="stat-value" id="rejected-count">0</span>
+                </div>
+            </div>
+            <button class="btn btn-ghost" id="btn-reset-all" title="Reset everything">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Reset
+            </button>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav id="main-nav">
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-tab="rules">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Rule Manager
+            </button>
+            <button class="nav-tab" data-tab="simulator">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Packet Simulator
+            </button>
+            <button class="nav-tab" data-tab="visualization">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Chain Visualization
+            </button>
+            <button class="nav-tab" data-tab="optimizer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                Optimizer
+            </button>
+            <button class="nav-tab" data-tab="commands">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                IPTables Commands
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content">
+
+        <!-- TAB: Rule Manager -->
+        <section class="tab-panel active" id="panel-rules">
+            <div class="panel-split">
+                <!-- Rule Form -->
+                <div class="card rule-form-card">
+                    <div class="card-header">
+                        <h2>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Firewall Rule
+                        </h2>
+                        <div class="preset-dropdown">
+                            <button class="btn btn-outline btn-sm" id="btn-presets">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                Presets
+                            </button>
+                            <div class="dropdown-menu" id="presets-menu">
+                                <button class="dropdown-item" data-preset="web-server">🌐 Web Server (HTTP/HTTPS)</button>
+                                <button class="dropdown-item" data-preset="ssh-only">🔑 SSH Only Access</button>
+                                <button class="dropdown-item" data-preset="dns-server">📡 DNS Server</button>
+                                <button class="dropdown-item" data-preset="block-all">🛡️ Block All Incoming</button>
+                                <button class="dropdown-item" data-preset="mail-server">📧 Mail Server</button>
+                                <button class="dropdown-item" data-preset="gaming">🎮 Gaming Server</button>
+                            </div>
+                        </div>
+                    </div>
+                    <form id="rule-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="rule-chain">Chain</label>
+                                <select id="rule-chain" required>
+                                    <option value="INPUT">INPUT</option>
+                                    <option value="OUTPUT">OUTPUT</option>
+                                    <option value="FORWARD">FORWARD</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="rule-protocol">Protocol</label>
+                                <select id="rule-protocol" required>
+                                    <option value="tcp">TCP</option>
+                                    <option value="udp">UDP</option>
+                                    <option value="icmp">ICMP</option>
+                                    <option value="all">ALL</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="rule-action">Action</label>
+                                <select id="rule-action" required>
+                                    <option value="ACCEPT">ACCEPT</option>
+                                    <option value="DROP">DROP</option>
+                                    <option value="REJECT">REJECT</option>
+                                    <option value="LOG">LOG</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="rule-src-ip">Source IP</label>
+                                <input type="text" id="rule-src-ip" placeholder="0.0.0.0/0 (any)" value="0.0.0.0/0">
+                            </div>
+                            <div class="form-group">
+                                <label for="rule-dst-ip">Destination IP</label>
+                                <input type="text" id="rule-dst-ip" placeholder="0.0.0.0/0 (any)" value="0.0.0.0/0">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="rule-src-port">Source Port</label>
+                                <input type="text" id="rule-src-port" placeholder="any" value="any">
+                            </div>
+                            <div class="form-group">
+                                <label for="rule-dst-port">Destination Port</label>
+                                <input type="text" id="rule-dst-port" placeholder="any" value="any">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="rule-description">Description (optional)</label>
+                                <input type="text" id="rule-description" placeholder="e.g., Allow SSH from office network">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" id="btn-add-rule">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Rule
+                            </button>
+                            <button type="button" class="btn btn-ghost" id="btn-clear-form">Clear</button>
+                        </div>
+                    </form>
+
+                    <!-- Default Policy -->
+                    <div class="default-policy-section">
+                        <h3>Default Chain Policies</h3>
+                        <div class="policy-grid">
+                            <div class="policy-item">
+                                <span class="policy-chain">INPUT</span>
+                                <select class="policy-select" data-chain="INPUT">
+                                    <option value="ACCEPT">ACCEPT</option>
+                                    <option value="DROP" selected>DROP</option>
+                                </select>
+                            </div>
+                            <div class="policy-item">
+                                <span class="policy-chain">FORWARD</span>
+                                <select class="policy-select" data-chain="FORWARD">
+                                    <option value="ACCEPT">ACCEPT</option>
+                                    <option value="DROP" selected>DROP</option>
+                                </select>
+                            </div>
+                            <div class="policy-item">
+                                <span class="policy-chain">OUTPUT</span>
+                                <select class="policy-select" data-chain="OUTPUT">
+                                    <option value="ACCEPT" selected>ACCEPT</option>
+                                    <option value="DROP">DROP</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rule Table -->
+                <div class="card rules-table-card">
+                    <div class="card-header">
+                        <h2>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            Active Rules
+                        </h2>
+                        <div class="table-actions">
+                            <div class="chain-filter">
+                                <button class="filter-chip active" data-filter="all">All</button>
+                                <button class="filter-chip" data-filter="INPUT">INPUT</button>
+                                <button class="filter-chip" data-filter="OUTPUT">OUTPUT</button>
+                                <button class="filter-chip" data-filter="FORWARD">FORWARD</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-wrapper" id="rules-table-wrapper">
+                        <table class="rules-table" id="rules-table">
+                            <thead>
+                                <tr>
+                                    <th class="th-num">#</th>
+                                    <th>Chain</th>
+                                    <th>Protocol</th>
+                                    <th>Source</th>
+                                    <th>Destination</th>
+                                    <th>Src Port</th>
+                                    <th>Dst Port</th>
+                                    <th>Action</th>
+                                    <th>Hits</th>
+                                    <th class="th-actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rules-tbody">
+                            </tbody>
+                        </table>
+                        <div class="empty-state" id="empty-rules">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <p>No firewall rules configured</p>
+                            <span>Add a rule or load a preset to get started</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: Packet Simulator -->
+        <section class="tab-panel" id="panel-simulator">
+            <div class="panel-split">
+                <!-- Packet Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/><path d="M17 12h.01"/><path d="M7 12h.01"/></svg>
+                            Craft Test Packet
+                        </h2>
+                    </div>
+                    <form id="packet-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pkt-direction">Direction</label>
+                                <select id="pkt-direction">
+                                    <option value="INPUT">Incoming (INPUT)</option>
+                                    <option value="OUTPUT">Outgoing (OUTPUT)</option>
+                                    <option value="FORWARD">Forwarded (FORWARD)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="pkt-protocol">Protocol</label>
+                                <select id="pkt-protocol">
+                                    <option value="tcp">TCP</option>
+                                    <option value="udp">UDP</option>
+                                    <option value="icmp">ICMP</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pkt-src-ip">Source IP</label>
+                                <input type="text" id="pkt-src-ip" placeholder="e.g., 192.168.1.100" value="192.168.1.100">
+                            </div>
+                            <div class="form-group">
+                                <label for="pkt-dst-ip">Destination IP</label>
+                                <input type="text" id="pkt-dst-ip" placeholder="e.g., 10.0.0.1" value="10.0.0.1">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pkt-src-port">Source Port</label>
+                                <input type="number" id="pkt-src-port" placeholder="e.g., 45321" value="45321" min="1" max="65535">
+                            </div>
+                            <div class="form-group">
+                                <label for="pkt-dst-port">Destination Port</label>
+                                <input type="number" id="pkt-dst-port" placeholder="e.g., 80" value="80" min="1" max="65535">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg" id="btn-simulate">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                Simulate Packet
+                            </button>
+                            <button type="button" class="btn btn-outline" id="btn-batch-sim">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                Batch Test (10 random)
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Quick Packet Templates -->
+                    <div class="quick-packets">
+                        <h3>Quick Packets</h3>
+                        <div class="quick-packet-grid">
+                            <button class="quick-pkt" data-pkt='{"direction":"INPUT","protocol":"tcp","srcIp":"203.0.113.50","dstIp":"10.0.0.1","srcPort":"54321","dstPort":"80"}'>
+                                <span class="qp-icon">🌐</span>
+                                <span>HTTP Request</span>
+                            </button>
+                            <button class="quick-pkt" data-pkt='{"direction":"INPUT","protocol":"tcp","srcIp":"198.51.100.25","dstIp":"10.0.0.1","srcPort":"61234","dstPort":"22"}'>
+                                <span class="qp-icon">🔑</span>
+                                <span>SSH Login</span>
+                            </button>
+                            <button class="quick-pkt" data-pkt='{"direction":"INPUT","protocol":"icmp","srcIp":"172.16.0.5","dstIp":"10.0.0.1","srcPort":"0","dstPort":"0"}'>
+                                <span class="qp-icon">📡</span>
+                                <span>Ping (ICMP)</span>
+                            </button>
+                            <button class="quick-pkt" data-pkt='{"direction":"INPUT","protocol":"udp","srcIp":"8.8.8.8","dstIp":"10.0.0.1","srcPort":"53","dstPort":"41234"}'>
+                                <span class="qp-icon">📋</span>
+                                <span>DNS Response</span>
+                            </button>
+                            <button class="quick-pkt" data-pkt='{"direction":"INPUT","protocol":"tcp","srcIp":"10.0.0.50","dstIp":"10.0.0.1","srcPort":"3306","dstPort":"55555"}'>
+                                <span class="qp-icon">🗄️</span>
+                                <span>MySQL Query</span>
+                            </button>
+                            <button class="quick-pkt" data-pkt='{"direction":"INPUT","protocol":"tcp","srcIp":"192.168.1.200","dstIp":"10.0.0.1","srcPort":"34567","dstPort":"443"}'>
+                                <span class="qp-icon">🔒</span>
+                                <span>HTTPS Request</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Result -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            Simulation Result
+                        </h2>
+                        <button class="btn btn-ghost btn-sm" id="btn-clear-log">Clear Log</button>
+                    </div>
+                    <div id="sim-result-area">
+                        <div class="sim-empty" id="sim-empty">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <p>No simulation run yet</p>
+                            <span>Craft a packet and click "Simulate" to see results</span>
+                        </div>
+                        <div id="sim-result" class="hidden">
+                            <div class="sim-verdict" id="sim-verdict"></div>
+                            <div class="sim-chain-walk" id="sim-chain-walk"></div>
+                        </div>
+                    </div>
+                    <!-- Traffic Log -->
+                    <div class="traffic-log" id="traffic-log">
+                        <h3>Traffic Log</h3>
+                        <div class="log-entries" id="log-entries"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: Chain Visualization -->
+        <section class="tab-panel" id="panel-visualization">
+            <div class="card full-card">
+                <div class="card-header">
+                    <h2>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                        IPTables Chain Flow Visualization
+                    </h2>
+                    <div class="viz-controls">
+                        <select id="viz-chain-select">
+                            <option value="INPUT">INPUT Chain</option>
+                            <option value="OUTPUT">OUTPUT Chain</option>
+                            <option value="FORWARD">FORWARD Chain</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="viz-container" id="viz-container">
+                    <canvas id="chain-canvas"></canvas>
+                </div>
+                <div class="viz-legend">
+                    <div class="legend-item"><span class="legend-color" style="background: #22c55e;"></span>ACCEPT</div>
+                    <div class="legend-item"><span class="legend-color" style="background: #ef4444;"></span>DROP</div>
+                    <div class="legend-item"><span class="legend-color" style="background: #f59e0b;"></span>REJECT</div>
+                    <div class="legend-item"><span class="legend-color" style="background: #6366f1;"></span>LOG</div>
+                    <div class="legend-item"><span class="legend-color" style="background: #64748b;"></span>Default Policy</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: Optimizer -->
+        <section class="tab-panel" id="panel-optimizer">
+            <div class="card full-card">
+                <div class="card-header">
+                    <h2>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                        Rule Optimization Engine
+                    </h2>
+                    <button class="btn btn-primary" id="btn-run-optimizer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        Run Analysis
+                    </button>
+                </div>
+                <div id="optimizer-results">
+                    <div class="optimizer-empty" id="optimizer-empty">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        <p>Optimization engine ready</p>
+                        <span>Click "Run Analysis" to detect redundant, shadowed, and conflicting rules</span>
+                    </div>
+                    <div id="optimizer-output" class="hidden"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: IPTables Commands -->
+        <section class="tab-panel" id="panel-commands">
+            <div class="card full-card">
+                <div class="card-header">
+                    <h2>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                        Generated IPTables Commands
+                    </h2>
+                    <button class="btn btn-outline" id="btn-copy-commands">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copy All
+                    </button>
+                </div>
+                <div class="commands-output">
+                    <pre id="commands-pre"><code id="commands-code">#!/bin/bash
+# No rules configured yet.
+# Add firewall rules to generate IPTables commands.</code></pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
