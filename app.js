@@ -113,12 +113,46 @@ const dom = {
 
 // ————— Init —————
 document.addEventListener('DOMContentLoaded', () => {
+    loadState();
     bindEvents();
     renderRulesTable();
     updateStats();
     generateCommands();
     drawChainVisualization();
+    
+    // Ensure selects and logs match loaded state
+    document.querySelectorAll('.policy-select').forEach(sel => {
+        sel.value = state.defaultPolicies[sel.dataset.chain];
+    });
+    renderLog();
 });
+
+// ————— State Persistence —————
+function saveState() {
+    localStorage.setItem('iptablesSimulatorState', JSON.stringify({
+        rules: state.rules,
+        trafficLog: state.trafficLog,
+        defaultPolicies: state.defaultPolicies,
+        counters: state.counters,
+        nextId: state.nextId
+    }));
+}
+
+function loadState() {
+    try {
+        const saved = localStorage.getItem('iptablesSimulatorState');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.rules) state.rules = parsed.rules;
+            if (parsed.trafficLog) state.trafficLog = parsed.trafficLog;
+            if (parsed.defaultPolicies) Object.assign(state.defaultPolicies, parsed.defaultPolicies);
+            if (parsed.counters) Object.assign(state.counters, parsed.counters);
+            if (parsed.nextId) state.nextId = parsed.nextId;
+        }
+    } catch (e) {
+        console.error("Failed to load state", e);
+    }
+}
 
 // ————— Event Bindings —————
 function bindEvents() {
@@ -198,6 +232,7 @@ function bindEvents() {
     document.querySelectorAll('.policy-select').forEach(sel => {
         sel.addEventListener('change', () => {
             state.defaultPolicies[sel.dataset.chain] = sel.value;
+            saveState();
             generateCommands();
             drawChainVisualization();
             showToast(`${sel.dataset.chain} default policy set to ${sel.value}`, 'info');
@@ -239,6 +274,7 @@ function addRule() {
     };
 
     state.rules.push(rule);
+    saveState();
     renderRulesTable();
     updateStats();
     generateCommands();
@@ -249,6 +285,7 @@ function addRule() {
 
 function deleteRule(id) {
     state.rules = state.rules.filter(r => r.id !== id);
+    saveState();
     renderRulesTable();
     updateStats();
     generateCommands();
@@ -262,6 +299,7 @@ function moveRule(id, direction) {
     const newIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (newIdx < 0 || newIdx >= state.rules.length) return;
     [state.rules[idx], state.rules[newIdx]] = [state.rules[newIdx], state.rules[idx]];
+    saveState();
     renderRulesTable();
     generateCommands();
     drawChainVisualization();
@@ -287,6 +325,7 @@ function loadPreset(presetKey) {
     preset.forEach(r => {
         state.rules.push({ ...r, id: state.nextId++, hits: 0 });
     });
+    saveState();
 
     renderRulesTable();
     updateStats();
@@ -412,6 +451,7 @@ function simulatePacket(customPacket) {
     }
 
     renderRulesTable();
+    saveState();
     return finalAction;
 }
 
@@ -541,6 +581,7 @@ function clearLog() {
     updateStats();
     // Reset rule hit counters
     state.rules.forEach(r => r.hits = 0);
+    saveState();
     renderRulesTable();
     showToast('Traffic log and counters cleared', 'info');
 }
@@ -1012,6 +1053,7 @@ function resetAll() {
     state.counters = { accepted: 0, dropped: 0, rejected: 0 };
     state.nextId = 1;
     state.defaultPolicies = { INPUT: 'DROP', FORWARD: 'DROP', OUTPUT: 'ACCEPT' };
+    saveState();
 
     // Reset policy selects
     document.querySelectorAll('.policy-select').forEach(sel => {
