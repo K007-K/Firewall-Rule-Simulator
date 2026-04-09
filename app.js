@@ -13,6 +13,7 @@ const state = {
     },
     counters: { accepted: 0, dropped: 0, rejected: 0 },
     activeFilter: 'all',
+    activeTab: 'rules',
     nextId: 1
 };
 
@@ -125,6 +126,18 @@ document.addEventListener('DOMContentLoaded', () => {
         sel.value = state.defaultPolicies[sel.dataset.chain];
     });
     renderLog();
+
+    // Restore active filter visually
+    if (state.activeFilter !== 'all') {
+        dom.filterChips.forEach(c => c.classList.remove('active'));
+        const activeChip = document.querySelector(`.filter-chip[data-filter="${state.activeFilter}"]`);
+        if (activeChip) activeChip.classList.add('active');
+    }
+
+    // Restore active tab
+    if (state.activeTab && state.activeTab !== 'rules') {
+        switchTab(state.activeTab);
+    }
 });
 
 // ————— State Persistence —————
@@ -134,6 +147,8 @@ function saveState() {
         trafficLog: state.trafficLog,
         defaultPolicies: state.defaultPolicies,
         counters: state.counters,
+        activeFilter: state.activeFilter,
+        activeTab: state.activeTab,
         nextId: state.nextId
     }));
 }
@@ -147,6 +162,8 @@ function loadState() {
             if (parsed.trafficLog) state.trafficLog = parsed.trafficLog;
             if (parsed.defaultPolicies) Object.assign(state.defaultPolicies, parsed.defaultPolicies);
             if (parsed.counters) Object.assign(state.counters, parsed.counters);
+            if (parsed.activeFilter) state.activeFilter = parsed.activeFilter;
+            if (parsed.activeTab) state.activeTab = parsed.activeTab;
             if (parsed.nextId) state.nextId = parsed.nextId;
         }
     } catch (e) {
@@ -189,6 +206,7 @@ function bindEvents() {
             dom.filterChips.forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             state.activeFilter = chip.dataset.filter;
+            saveState();
             renderRulesTable();
         });
     });
@@ -249,6 +267,9 @@ function switchTab(tabId) {
     dom.tabPanels.forEach(p => p.classList.remove('active'));
     document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
     document.getElementById(`panel-${tabId}`).classList.add('active');
+
+    state.activeTab = tabId;
+    saveState();
 
     if (tabId === 'visualization') {
         setTimeout(drawChainVisualization, 50);
@@ -1053,6 +1074,8 @@ function resetAll() {
     state.counters = { accepted: 0, dropped: 0, rejected: 0 };
     state.nextId = 1;
     state.defaultPolicies = { INPUT: 'DROP', FORWARD: 'DROP', OUTPUT: 'ACCEPT' };
+    state.activeFilter = 'all';
+    state.activeTab = 'rules';
     saveState();
 
     // Reset policy selects
